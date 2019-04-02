@@ -115,15 +115,10 @@ public class FileManager extends Thread {
 	}
 	
 	public boolean requestToReadFileFromAnyActiveNode(String filename) throws RemoteException, NotBoundException {
-		
 		// get all the activenodes that have the file (replicas) i.e. requestActiveNodesForFile(String filename)
 		Set<Message> activeNodesWithReplicas = requestActiveNodesForFile(filename);
 		// choose any available node
-		Message msg = null;
-		for (Message activeNode : activeNodesWithReplicas){
-			msg = activeNode;
-			break;
-		}
+		Message msg = new ArrayList<>(activeNodesWithReplicas).get(0);
 		// locate the registry and see if the node is still active by retrieving its remote object
 		msg.setOptype(OperationType.READ);
 		Registry registry = Util.locateRegistry(msg.getNodeIP());

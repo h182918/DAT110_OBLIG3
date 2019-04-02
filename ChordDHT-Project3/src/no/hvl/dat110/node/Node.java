@@ -457,8 +457,7 @@ public class Node extends UnicastRemoteObject implements ChordNodeInterface {
 	public void multicastVotersDecision(Message message) throws RemoteException {	
 		
 		// multicast voters decision to the rest of the replicas (i.e activenodesforfile)
-		Set<Message> replicas = activenodesforfile;
-		replicas.remove(message);										// don't repeat the operation for the initiating process
+		ArrayList<Message> replicas = new ArrayList<>(activenodesforfile);
 
 		for(Message activenodes : replicas) {
 			String nodeip = activenodes.getNodeIP();
