@@ -14,11 +14,7 @@ import java.math.BigInteger;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import no.hvl.dat110.node.Message;
 import no.hvl.dat110.node.OperationType;
@@ -86,18 +82,26 @@ public class FileManager extends Thread {
 	 * @throws RemoteException 
 	 */
 	public Set<Message> requestActiveNodesForFile(String filename) throws RemoteException {
-		
+		Set<Message> activeNodes = new HashSet<>();
 		// generate the N replica keyids from the filename
-		
 		// create replicas
-		
-		// findsuccessors for each file replica and save the result (fileID) for each successor 
-		
+		createReplicaFiles(filename);
+		// findsuccessors for each file replica and save the result (fileID) for each successor
 		// if we find the successor node of fileID, we can retrieve the message associated with a fileID by calling the getFilesMetadata() of chordnode.
-		
+		for (int i = 0; i < replicafiles.length; i++) {
+			BigInteger fileID = replicafiles[i];
+			ChordNodeInterface successorOfFileID = chordnode.findSuccessor(fileID);
+			if (successorOfFileID != null){
+				Map<BigInteger, Message> succMap = successorOfFileID.getFilesMetadata();
+				if (!checkDuplicateActiveNode(activeNodes, succMap.get(fileID))){
+					activeNodes.add(succMap.get(fileID));
+				}
+			}
+		}
+
 		// save the message in a list but eliminate duplicated entries. e.g a node may be repeated because it maps more than one replicas to its id. (use checkDuplicateActiveNode)
 		
-		return null;	// return value is a Set of type Message		
+		return activeNodes;	// return value is a Set of type Message
 	}
 	
 	private boolean checkDuplicateActiveNode(Set<Message> activenodesdata, Message nodetocheck) {
