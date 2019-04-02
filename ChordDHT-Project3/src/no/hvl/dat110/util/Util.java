@@ -69,7 +69,6 @@ public class Util {
 		for(int i=0; i<fingers.size(); i++) {
 			fingerstr.add(fingers.get(i).getNodeIP());
 		}
-		
 		return fingerstr;
 	}
 	
@@ -86,9 +85,7 @@ public class Util {
 				return registry;
 			}
 		}
-		
 		return registry;
-
 	}
 	
 	public static ChordNodeInterface registryHandle(ChordNodeInterface node) {
