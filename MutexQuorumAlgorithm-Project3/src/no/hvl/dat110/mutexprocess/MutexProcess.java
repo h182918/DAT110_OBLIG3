@@ -163,11 +163,17 @@ public class MutexProcess extends UnicastRemoteObject implements ProcessInterfac
 		/**
 		 *  case 3: Receiver wants to access resource but is yet to (compare own multicast message to received message
 		 *  the message with lower timestamp wins) - GRANT if received is lower, acquirelock and reply
-		 */		
-		if (message.getClock() < counter){
-			message.setAcknowledged(true);
-			acquireLock();
-			return message;
+		 */
+		if (WANTS_TO_ENTER_CS){
+			if (message.getClock() < counter){
+				message.setAcknowledged(true);
+				acquireLock();
+				return message;
+			} else {
+				message.setAcknowledged(false);
+				return message;
+			}
+
 		}
 		return null;
 	}
@@ -201,6 +207,9 @@ public class MutexProcess extends UnicastRemoteObject implements ProcessInterfac
 			op.performOperation();
 			releaseLocks();
 		}
+		else if (message.getOptype() == OperationType.READ) {
+			releaseLocks();
+		}
 		
 	}
 	
@@ -219,7 +228,8 @@ public class MutexProcess extends UnicastRemoteObject implements ProcessInterfac
 	
 	@Override
 	public void multicastVotersDecision(Message message) throws RemoteException {	
-		// multicast voters decision to the rest of the replicas 
+		// multicast voters decision to the rest of the replicas
+		replicas.remove(this.procStubname);
 		for(int i=0; i<replicas.size(); i++) {
 			String stub = replicas.get(i);
 			try {
