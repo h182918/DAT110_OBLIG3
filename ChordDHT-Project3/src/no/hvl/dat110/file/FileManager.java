@@ -138,7 +138,6 @@ public class FileManager extends Thread {
 		if (msg.isAcknowledged()){
 			// acquire lock to CS and also increments localclock
 			node.acquireLock();
-			node.incrementclock();
 			// perform operation by calling Operations class
 			Operations op = new Operations(node, msg, activeNodesWithReplicas);
 			op.performOperation();
