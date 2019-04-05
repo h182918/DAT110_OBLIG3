@@ -339,53 +339,36 @@ public class Node extends UnicastRemoteObject implements ChordNodeInterface {
 	public Message onMessageReceived(Message message) throws RemoteException {
 		// increment the local clock
 		incrementclock();
-
 		// Hint: for all 3 cases, use Message to send GRANT or DENY. e.g. message.setAcknowledgement(true) = GRANT
-
 		/**
 		 *  case 1: Receiver is not accessing shared resource and does not want to: GRANT, acquirelock and reply
 		 */
 		if (!CS_BUSY && !WANTS_TO_ENTER_CS) {
-			Message reply = new Message();
-			reply.setClock(this.counter);
-			reply.setNodeID(this.nodeID);
-			reply.setNodeIP(this.nodeIP);
-			reply.setAcknowledged(true);
-
+			message.setAcknowledged(true);
 			acquireLock();
-
-			return reply;
+			return message;
 		}
 		/**
 		 *  case 2: Receiver already has access to the resource: DENY and reply
 		 */
 		if (CS_BUSY) {
-			Message reply = new Message();
-			reply.setClock(this.counter);
-			reply.setNodeID(this.nodeID);
-			reply.setNodeIP(this.nodeIP);
-			reply.setAcknowledged(false);
-
-			return reply;
+			message.setAcknowledged(false);
+			return message;
 		}
 		/**
 		 *  case 3: Receiver wants to access resource but is yet to (compare own multicast message to received message
 		 *  the message with lower timestamp wins) - GRANT if received is lower, acquirelock and reply
 		 */
 		if (WANTS_TO_ENTER_CS) {
-			Message reply = new Message();
-			reply.setClock(this.counter);
-			reply.setNodeID(this.nodeID);
-			reply.setNodeIP(this.nodeIP);
 
-			if (reply.getClock() < message.getClock()) {
-				reply.setAcknowledged(false);
-				return reply;
+			if (message.getClock() < message.getClock()) {
+				message.setAcknowledged(false);
+				return message;
 			}
 			else {
-				reply.setAcknowledged(true);
+				message.setAcknowledged(true);
 				acquireLock();
-				return reply;
+				return message;
 			}
 		}
 		return null;
