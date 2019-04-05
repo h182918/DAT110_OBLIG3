@@ -126,28 +126,28 @@ public class FileManager extends Thread {
 		// build the operation to be performed - Read and request for votes in existing active node message
 		// set the active nodes holding replica files in the contact node (setActiveNodesForFile)
 		node.setActiveNodesForFile(activeNodesWithReplicas);
-		chordnode.setActiveNodesForFile(activeNodesWithReplicas);
 		// set the NodeIP in the message (replace ip with )
-		msg.setNodeIP(chordnode.getNodeIP());
+		msg.setNodeIP(node.getNodeIP());
 		// send a request to a node and get the voters decision
-		boolean result = chordnode.requestReadOperation(msg);
+		boolean result = node.requestReadOperation(msg);
 		// put the decision back in the message
 		msg.setAcknowledged(result);
 		// multicast voters' decision to the rest of the nodes
-		chordnode.multicastVotersDecision(msg);
+		node.multicastVotersDecision(msg);
 		// if majority votes
 		if (msg.isAcknowledged()){
 			// acquire lock to CS and also increments localclock
-			chordnode.acquireLock();
+			node.acquireLock();
+			node.incrementclock();
 			// perform operation by calling Operations class
-			Operations op = new Operations(chordnode, msg, activeNodesWithReplicas);
+			Operations op = new Operations(node, msg, activeNodesWithReplicas);
 			op.performOperation();
 			// optional: retrieve content of file on local resource
 
 			// send message to let replicas release read lock they are holding
 			op.multicastReadReleaseLocks();
 			// release locks after operations
-			chordnode.releaseLocks();
+			node.releaseLocks();
 		}
 		return msg.isAcknowledged();		// change to your final answer
 	}
@@ -167,21 +167,21 @@ public class FileManager extends Thread {
 		// set the active nodes holding replica files in the contact node (setActiveNodesForFile)
  		node.setActiveNodesForFile(activeNodes);
 		// set the NodeIP in the message (replace ip with )
-		mesage.setNodeIP(chordnode.getNodeIP());
+		mesage.setNodeIP(node.getNodeIP());
 		
 		// send a request to a node and get the voters decision
-		boolean result = chordnode.requestWriteOperation(mesage);
+		boolean result = node.requestWriteOperation(mesage);
 		// put the decision back in the message
 		mesage.setAcknowledged(result);
 		// multicast voters' decision to the rest of the nodes
-		chordnode.multicastVotersDecision(mesage);
+		node.multicastVotersDecision(mesage);
 		// if majority votes
 		if (mesage.isAcknowledged()){
 			// acquire lock to CS and also increments localclock
-			chordnode.acquireLock();
-			chordnode.incrementclock();
+			node.acquireLock();
+			node.incrementclock();
 			// perform operation by calling Operations class
-			Operations op = new Operations(chordnode, mesage, activeNodes);
+			Operations op = new Operations(node, mesage, activeNodes);
 			op.performOperation();
 			// update replicas and let replicas release CS lock they are holding
 			try {
@@ -191,7 +191,7 @@ public class FileManager extends Thread {
 			}
 			// release locks after operations
 			op.multicastReadReleaseLocks();
-			chordnode.releaseLocks();
+			node.releaseLocks();
 		}
 
 		return mesage.isAcknowledged();  // change to your final answer
