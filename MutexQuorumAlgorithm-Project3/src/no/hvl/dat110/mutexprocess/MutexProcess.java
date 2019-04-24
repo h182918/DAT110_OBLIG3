@@ -84,7 +84,6 @@ public class MutexProcess extends UnicastRemoteObject implements ProcessInterfac
 		// release your lock variables and logical clock update
 		CS_BUSY = false;
 		WANTS_TO_ENTER_CS = false;
-		incrementclock();
 	}
 	
 	public boolean requestWriteOperation(Message message) throws RemoteException {
@@ -119,7 +118,7 @@ public class MutexProcess extends UnicastRemoteObject implements ProcessInterfac
 		Collections.shuffle(replicas);
 		// multicast message to N/2 + 1 processes (random processes) - block until feedback is received
 		synchronized (queueACK){
-			for (int i = 0; i < n; i++){
+			for (int i = 0; i < replicas.size(); i++){
 				String stub = replicas.get(i);
 
 				try {
@@ -202,9 +201,9 @@ public class MutexProcess extends UnicastRemoteObject implements ProcessInterfac
 		// check the operation type: we expect a WRITE operation to do this.
 		// perform operation by using the Operations class 
 		// Release locks after this operation
+		Operations ops = new Operations(this, message);
 		if (message.getOptype() == OperationType.WRITE){
-			Operations op = new Operations(this, message);
-			op.performOperation();
+			ops.performOperation();
 			releaseLocks();
 		}
 		else if (message.getOptype() == OperationType.READ) {
@@ -218,11 +217,11 @@ public class MutexProcess extends UnicastRemoteObject implements ProcessInterfac
 		// check the operation type:
 		// if this is a write operation, multicast the update to the rest of the replicas (voters)
 		// otherwise if this is a READ operation multicast releaselocks to the replicas (voters)
-		Operations op = new Operations(this, message);
+		Operations ops = new Operations(this, message);
 		if (message.getOptype() == OperationType.WRITE){
-			op.multicastOperationToReplicas(message);
+			ops.multicastOperationToReplicas(message);
 		} else {
-			op.multicastReadReleaseLocks();
+			ops.multicastReadReleaseLocks();
 		}
 	}	
 	

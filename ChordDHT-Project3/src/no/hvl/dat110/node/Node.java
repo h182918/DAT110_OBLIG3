@@ -288,9 +288,9 @@ public class Node extends UnicastRemoteObject implements ChordNodeInterface {
 
 		// wants to access resource - multicast clock + message to other processes
 		WANTS_TO_ENTER_CS = true;
-		boolean electionresult = multicastMessage(message);			// request for write permission from N/2 + 1 replicas (majority)
+		boolean result = multicastMessage(message);			// request for write permission from N/2 + 1 replicas (majority)
 		
-		return electionresult;
+		return result;
 		
 	}
 
@@ -303,9 +303,9 @@ public class Node extends UnicastRemoteObject implements ChordNodeInterface {
 
 		// wants to access resource - multicast clock + message to other processes
 		WANTS_TO_ENTER_CS = true;
-		boolean electionresult = multicastMessage(message);				// request for read permission from N/2 + 1 replicas (majority)
+		boolean result = multicastMessage(message);				// request for read permission from N/2 + 1 replicas (majority)
 
-		return electionresult;
+		return result;
 	}	
 	
 	// multicast message to N/2 + 1 processes (random processes)
@@ -319,8 +319,8 @@ public class Node extends UnicastRemoteObject implements ChordNodeInterface {
 		synchronized (queueACK){
 			for (int i = 0; i < quorum; i++) {
 				try {
-					Registry reg = Util.locateRegistry(list.get(i).getNodeIP());
-					ChordNodeInterface node = (ChordNodeInterface) reg.lookup(list.get(i).getNodeID().toString());
+					Registry nodeRegistry = Util.locateRegistry(list.get(i).getNodeIP());
+					ChordNodeInterface node = (ChordNodeInterface) nodeRegistry.lookup(list.get(i).getNodeID().toString());
 					queueACK.add(node.onMessageReceived(message));
 				}catch (NotBoundException e){
 					e.printStackTrace();
@@ -330,50 +330,44 @@ public class Node extends UnicastRemoteObject implements ChordNodeInterface {
 		// do something with the acknowledgement you received from the voters - Idea: use the queueACK to collect GRANT/DENY messages and make sure queueACK is synchronized!!!
 
 		// compute election result - Idea call majorityAcknowledged()
-		boolean result = majorityAcknowledged();
+		return majorityAcknowledged(); // change to the election result
 
-		return result; // change to the election result
+		 
 	}
 	
 	@Override
 	public Message onMessageReceived(Message message) throws RemoteException {
 		// increment the local clock
 		incrementclock();
-		// Comment
-		// Hint: for all 3 cases, use Message to send GRANT or DENY. e.g. message.setAcknowledgement(true) = GRANT
-		/**
+
+		/* Hint: for all 3 cases, use Message to send GRANT or DENY. e.g. message.setAcknowledgement(true) = GRANT
 		 *  case 1: Receiver is not accessing shared resource and does not want to: GRANT, acquirelock and reply
-		 */
-		if (!CS_BUSY && !WANTS_TO_ENTER_CS) {
+		 *  case 3: Receiver wants to access resource but is yet to (compare own multicast message to received message
+		 *  the message with lower timestamp wins) - GRANT if received is lower, acquirelock and reply
+		 *  case 2: Receiver already has access to the resource: DENY and reply*/
+		 
+		if (CS_BUSY == false && WANTS_TO_ENTER_CS == false) {
 			message.setAcknowledged(true);
 			acquireLock();
 			return message;
 		}
-		/**
-		 *  case 2: Receiver already has access to the resource: DENY and reply
-		 */
-		if (CS_BUSY) {
+	
+		if (CS_BUSY == true) {
 			message.setAcknowledged(false);
 			return message;
 		}
-		/**
-		 *  case 3: Receiver wants to access resource but is yet to (compare own multicast message to received message
-		 *  the message with lower timestamp wins) - GRANT if received is lower, acquirelock and reply
-		 */
-		if (WANTS_TO_ENTER_CS) {
 
-			if (message.getClock() < message.getClock()) {
+		if (WANTS_TO_ENTER_CS == true) {
+			if (message.getClock() < this.counter) {
 				message.setAcknowledged(false);
 				return message;
-			}
-			else {
+			}else {
 				message.setAcknowledged(true);
 				acquireLock();
 				return message;
 			}
 		}
 		return null;
-		
 	}
 	
 	@Override
@@ -383,7 +377,8 @@ public class Node extends UnicastRemoteObject implements ChordNodeInterface {
 		// check if it is the majority or not
 		// return the decision (true or false)
 
-		return queueACK.stream().filter(m -> m.isAcknowledged()).count() >= quorum;			// change this to the result of the vote
+		int result = (int) queueACK.stream().filter(x -> x.isAcknowledged()).count();	
+		return  (result >= quorum); // change this to the result of the vote
 	}
 
 	@Override
